@@ -1,0 +1,13 @@
+# Python (Backend)
+__pycache__/
+*.py[cod]
+backend/venv/
+backend/.env
+
+# Node (Frontend)
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+
+# Sistema
+.DS_Store
