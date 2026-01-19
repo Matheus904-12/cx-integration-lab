@@ -1,0 +1,49 @@
+name: CI Pipeline (Backend & Frontend)
+
+# Quando isso vai rodar?
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+
+jobs:
+  # Job 1: Verifica se o Backend Python não está quebrado
+  build-backend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v3
+      with:
+        python-version: "3.11"
+        
+    - name: Install Dependencies
+      run: |
+        cd backend
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        
+    # Aqui poderíamos rodar testes (pytest), por enquanto só verifica se instala
+
+  # Job 2: Verifica se o Frontend React compila sem erros
+  build-frontend:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: 18
+        
+    - name: Install Dependencies
+      run: |
+        cd frontend
+        npm install
+        
+    - name: Build Project
+      run: |
+        cd frontend
+        npm run build
