@@ -1,5 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
-from fastapi.middleware.cors import CORSMiddleware # Import do CORS
+from fastapi.middleware.cors import CORSMiddleware # <--- OBRIGATÓRIO
 
 from sqlalchemy.orm import Session
 from database import get_db, get_mongo, engine
@@ -7,21 +7,27 @@ import models
 import schemas
 from datetime import datetime
 
-# Cria as tabelas no banco de dados (se não existirem)
+# Garante a criação das tabelas
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="BCR CX Integration Lab")
 
-# --- CORREÇÃO IMPORTANTE (ADICIONE ISSO) ---
-# Isso permite que o React (porta 5173) fale com o Python (porta 8000)
+# --- BLOCO DE SEGURANÇA (CORS) ---
+# Isso libera o Frontend (React) para falar com o Backend
+origins = [
+    "http://localhost:5173", # Endereço do seu Frontend
+    "http://127.0.0.1:5173",
+    "*" # Libera geral (bom para dev)
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permite qualquer origem (para teste local)
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],  # Permite GET, POST, PUT, DELETE, etc.
+    allow_methods=["*"],
     allow_headers=["*"],
 )
-# -------------------------------------------
+# ---------------------------------
 
 # --- ROTAS ---
 
@@ -31,22 +37,17 @@ def create_ticket(
     db: Session = Depends(get_db),
     mongo_db = Depends(get_mongo)
 ):
-    """
-    Recebe um webhook (ex: Mercado Livre), salva o log bruto no Mongo
-    e cria um Ticket estruturado no Postgres.
-    """
-    
-    # 1. Auditoria: Salvar JSON bruto no MongoDB (Log)
+    # 1. Auditoria no Mongo
     if mongo_db is not None:
         log_entry = ticket.model_dump()
         log_entry["received_at"] = datetime.utcnow()
         try:
             mongo_db["integration_logs"].insert_one(log_entry)
-            print("✅ Log salvo no MongoDB Atlas")
+            print("✅ Log salvo no Mongo")
         except Exception as e:
-            print(f"⚠️ Erro ao salvar no Mongo: {e}")
+            print(f"⚠️ Erro Mongo: {e}")
 
-    # 2. Persistência: Salvar no Postgres (Tabela Tickets)
+    # 2. Persistência no Postgres
     db_ticket = models.Ticket(
         external_id=ticket.external_id,
         source=ticket.source,
@@ -58,12 +59,8 @@ def create_ticket(
     db.add(db_ticket)
     db.commit()
     db.refresh(db_ticket)
-    
     return db_ticket
 
 @app.get("/tickets/", response_model=list[schemas.TicketResponse], tags=["Atendimento"])
 def list_tickets(db: Session = Depends(get_db)):
-    """
-    Lista todos os tickets para o Frontend exibir.
-    """
     return db.query(models.Ticket).all()
