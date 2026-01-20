@@ -15,9 +15,10 @@ app = FastAPI(title="BCR CX Integration Lab")
 # --- BLOCO DE SEGURANÇA (CORS) ---
 # Isso libera o Frontend (React) para falar com o Backend
 origins = [
-    "http://localhost:5173", # Endereço do seu Frontend
-    "http://127.0.0.1:5173",
-    "*" # Libera geral (bom para dev)
+    "http://localhost:5173",
+    "https://cx-integration-lab.vercel.app", # URL principal (se tiver)
+    "https://cx-integration-8akrwxxin-matheus-lucindos-projects.vercel.app", # URL do erro
+    "*" # Manter o asterisco por segurança
 ]
 
 app.add_middleware(
