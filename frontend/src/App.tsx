@@ -20,7 +20,12 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // Estado do Formulário
+  // --- A MÁGICA ACONTECE AQUI ---
+  // Se estiver na Vercel, usa a variável de ambiente. 
+  // Se não tiver variável (local), usa o localhost.
+  const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+  // -----------------------------
+
   const [formData, setFormData] = useState<Ticket>({
     external_id: '',
     source: 'Mercado Livre',
@@ -32,7 +37,8 @@ function App() {
   // Buscar Tickets
   const fetchTickets = async () => {
     try {
-      const response = await fetch('http://127.0.0.1:8000/tickets/');
+      // Usa a variável API_URL
+      const response = await fetch(`${API_URL}/tickets/`); 
       const data = await response.json();
       setTickets(data);
     } catch (error) {
@@ -42,12 +48,13 @@ function App() {
 
   // Criar Ticket (POST)
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault(); // Evita que a página recarregue
+    e.preventDefault();
     setLoading(true);
     setSuccess(false);
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/tickets/', {
+      // Usa a variável API_URL aqui também
+      const response = await fetch(`${API_URL}/tickets/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -55,9 +62,7 @@ function App() {
 
       if (response.ok) {
         setSuccess(true);
-        fetchTickets(); // Recarrega a tabela imediatamente
-        
-        // Limpa formulário e gera um novo ID aleatório para facilitar o próximo teste
+        fetchTickets(); 
         setFormData({ 
           ...formData, 
           external_id: `MLB-${Math.floor(Math.random() * 10000)}`, 
@@ -65,7 +70,7 @@ function App() {
           description: '' 
         });
       } else {
-        alert("Erro ao criar ticket. Verifique se o ID já existe ou se o Backend está rodando.");
+        alert("Erro ao criar ticket.");
       }
     } catch (error) {
       console.error("Erro:", error);
@@ -83,7 +88,6 @@ function App() {
     <ThemeProvider theme={DEFAULT_THEME}>
       <div style={{ backgroundColor: '#f8f9fa', minHeight: '100vh', padding: '40px' }}>
         
-        {/* Cabeçalho */}
         <div style={{ maxWidth: '1200px', margin: '0 auto 40px auto', display: 'flex', alignItems: 'center', gap: '15px' }}>
           <span style={{ fontSize: '40px' }}>🚀</span>
           <div>
@@ -94,119 +98,49 @@ function App() {
 
         <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '30px' }}>
           
-          {/* Coluna da Esquerda: Formulário */}
+          {/* Formulário */}
           <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)', height: 'fit-content' }}>
             <h2 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '20px', color: '#2f3941' }}>Novo Chamado</h2>
-            
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <Field>
                 <Label>ID do Pedido (Externo)</Label>
-                <Input 
-                  value={formData.external_id} 
-                  placeholder="Ex: MLB-2026-99"
-                  onChange={e => setFormData({...formData, external_id: e.target.value})} 
-                  required
-                />
+                <Input value={formData.external_id} placeholder="Ex: MLB-2026-99" onChange={e => setFormData({...formData, external_id: e.target.value})} required />
               </Field>
-
               <Field>
                 <Label>Origem</Label>
-                <Input 
-                  value={formData.source} 
-                  onChange={e => setFormData({...formData, source: e.target.value})} 
-                />
+                <Input value={formData.source} onChange={e => setFormData({...formData, source: e.target.value})} />
               </Field>
-
               <Field>
                 <Label>Nome do Cliente</Label>
-                <Input 
-                  value={formData.customer_name} 
-                  placeholder="Nome do cliente"
-                  onChange={e => setFormData({...formData, customer_name: e.target.value})} 
-                  required
-                />
+                <Input value={formData.customer_name} placeholder="Nome do cliente" onChange={e => setFormData({...formData, customer_name: e.target.value})} required />
               </Field>
-
               <Field>
                 <Label>Mensagem / Dúvida</Label>
-                <Textarea 
-                  rows={3}
-                  value={formData.description} 
-                  onChange={e => setFormData({...formData, description: e.target.value})} 
-                  required
-                />
+                <Textarea rows={3} value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} required />
               </Field>
-
-              {/* AQUI ESTAVA O PROBLEMA: Adicionei type="submit" */}
-              <Button isPrimary type="submit" disabled={loading} style={{ marginTop: '10px' }}>
-                {loading ? 'Enviando...' : 'Simular Webhook'}
-              </Button>
+              <Button isPrimary type="submit" disabled={loading} style={{ marginTop: '10px' }}>{loading ? 'Enviando...' : 'Simular Webhook'}</Button>
             </form>
-
-            {success && (
-              <div style={{ marginTop: '20px' }}>
-                <Alert type="success">
-                  <AlertTitle>Sucesso</AlertTitle>
-                  Ticket criado no Neon e Log salvo no Mongo!
-                </Alert>
-              </div>
-            )}
+            {success && (<div style={{ marginTop: '20px' }}><Alert type="success"><AlertTitle>Sucesso</AlertTitle>Ticket criado no Neon e Log salvo no Mongo!</Alert></div>)}
           </div>
 
-          {/* Coluna da Direita: Tabela */}
+          {/* Tabela */}
           <div style={{ background: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#2f3941' }}>Fila de Atendimento</h2>
               <Button onClick={fetchTickets} size="small" isBasic>Atualizar</Button>
             </div>
-
             <div style={{ overflowX: 'auto' }}>
               <Table>
-                <Head>
-                  <Row>
-                    <HeaderCell>ID</HeaderCell>
-                    <HeaderCell>Origem</HeaderCell>
-                    <HeaderCell>Cliente</HeaderCell>
-                    <HeaderCell>Mensagem</HeaderCell>
-                    <HeaderCell>Status</HeaderCell>
-                  </Row>
-                </Head>
+                <Head><Row><HeaderCell>ID</HeaderCell><HeaderCell>Origem</HeaderCell><HeaderCell>Cliente</HeaderCell><HeaderCell>Mensagem</HeaderCell><HeaderCell>Status</HeaderCell></Row></Head>
                 <Body>
-                  {tickets.length === 0 ? (
-                    <Row><Cell colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>Nenhum ticket encontrado</Cell></Row>
-                  ) : (
-                    tickets.map((ticket) => (
-                      <Row key={ticket.id}>
-                        <Cell><b>{ticket.external_id}</b></Cell>
-                        <Cell>
-                          <span style={{ fontSize: '12px', background: '#f0f0f0', padding: '2px 8px', borderRadius: '10px', color: '#555' }}>
-                            {ticket.source}
-                          </span>
-                        </Cell>
-                        <Cell>{ticket.customer_name}</Cell>
-                        <Cell style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {ticket.description}
-                        </Cell>
-                        <Cell>
-                          <span style={{ 
-                            background: '#d1f7c4', color: '#0f4c05',
-                            padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px' 
-                          }}>
-                            {ticket.status.toUpperCase()}
-                          </span>
-                        </Cell>
-                      </Row>
-                    ))
-                  )}
+                  {tickets.length === 0 ? (<Row><Cell colSpan={5} style={{ textAlign: 'center', padding: '20px' }}>Nenhum ticket encontrado</Cell></Row>) : (tickets.map((ticket) => (<Row key={ticket.id}><Cell><b>{ticket.external_id}</b></Cell><Cell><span style={{ fontSize: '12px', background: '#f0f0f0', padding: '2px 8px', borderRadius: '10px', color: '#555' }}>{ticket.source}</span></Cell><Cell>{ticket.customer_name}</Cell><Cell style={{ maxWidth: '200px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{ticket.description}</Cell><Cell><span style={{ background: '#d1f7c4', color: '#0f4c05', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', fontSize: '12px' }}>{ticket.status.toUpperCase()}</span></Cell></Row>)))}
                 </Body>
               </Table>
             </div>
           </div>
-
         </div>
       </div>
     </ThemeProvider>
   );
 }
-
 export default App;
